@@ -129,33 +129,33 @@ resource "null_resource" "update_kubeconfig_v2" {
   depends_on = [aws_eks_cluster.cbz_cluster]
 }
 
-# Add Admin IAM Role to aws-auth ConfigMap
+# Configure aws-auth ConfigMap in the Cluster
 resource "null_resource" "configure_aws_auth" {
   provisioner "local-exec" {
     command = <<EOT
-      cat <<EOF | kubectl apply -f -
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: aws-auth
-        namespace: kube-system
-      data:
-        mapRoles: |
-          - rolearn: ${aws_iam_role.eks_node_role.arn}
-            username: system:node:EC2PrivateDNSName
-            groups:
-              - system:bootstrappers
-              - system:nodes
-          - rolearn: ${aws_iam_role.eks_cluster_role.arn}
-            username: admin
-            groups:
-              - system:masters
-      EOF
-    EOT
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: ${aws_iam_role.eks_node_role.arn}
+      username: system:node:EC2PrivateDNSName
+      groups:
+        - system:bootstrappers
+        - system:nodes
+    - rolearn: ${aws_iam_role.eks_cluster_role.arn}
+      username: admin
+      groups:
+        - system:masters
+EOF
+EOT
   }
 
   depends_on = [
     aws_eks_cluster.cbz_cluster,
-    null_resource.update_kubeconfig
+    null_resource.update_kubeconfig_v2
   ]
 }
